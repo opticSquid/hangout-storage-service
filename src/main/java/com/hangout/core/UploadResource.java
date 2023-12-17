@@ -15,10 +15,6 @@ import jakarta.ws.rs.core.MediaType;
 @Path("upload")
 @RequestScoped
 public class UploadResource {
-    private static final Logger LOG = Logger.getLogger(UploadResource.class);
-    // @Inject
-    // EventBus bus;
-
     @Inject
     FileService fs;
 
