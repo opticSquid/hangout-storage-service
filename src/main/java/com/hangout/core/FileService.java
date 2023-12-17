@@ -1,39 +1,21 @@
 package com.hangout.core;
 
-import java.nio.file.Path;
-
-import org.apache.commons.io.FileUtils;
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import io.quarkus.vertx.ConsumeEvent;
-import io.vertx.mutiny.core.eventbus.EventBus;
+
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class FileService {
-    private static final Logger LOG = LoggerFactory.getLogger(FileService.class);
-    private String storagePath = "./store";
+    private static final Logger LOG = Logger.getLogger(FileService.class);
 
-    @Inject
-    EventBus bus;
-
-    @ConsumeEvent(blocking = true, value = "file-service")
-    public void processFile(FileUpload file) {
+    // @ConsumeEvent(blocking = true, value = "file-service")
+    public String processFile(FileUpload file) {
         String fileName = file.fileName();
         String contentType = file.contentType();
-        if (!contentType.startsWith("image/")) {
+        if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {
             throw new IllegalArgumentException("Invalid file type: " + contentType);
         }
-        // String uniqueFileName = generateUniqueFileName(fileName);
-        // String targetPath = storagePath + uniqueFileName;
-        Path filePath = file.filePath();
-
-        bus.publish("file-path", filePath.toString());
-    }
-
-    private String generateUniqueFileName(String fileName) {
-        return null;
+        return file.filePath().toString() + "/" + fileName;
     }
 }
