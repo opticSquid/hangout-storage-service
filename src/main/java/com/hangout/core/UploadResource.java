@@ -1,7 +1,5 @@
 package com.hangout.core;
 
-import org.jboss.logging.Logger;
-
 import com.hangout.core.dtos.IncomingRequestBody;
 
 import jakarta.enterprise.context.RequestScoped;
