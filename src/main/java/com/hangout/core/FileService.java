@@ -1,8 +1,6 @@
 package com.hangout.core;
 
 import org.jboss.resteasy.reactive.multipart.FileUpload;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.hangout.core.dtos.MediaPipelineInit;
 
@@ -12,11 +10,9 @@ import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class FileService {
-    private static final Logger LOG = LoggerFactory.getLogger(FileService.class);
     @Inject
     EventBus bus;
 
-    // @ConsumeEvent(blocking = true, value = "file-service")
     public String processFile(FileUpload file) {
         String contentType = file.contentType();
         if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {

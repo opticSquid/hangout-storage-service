@@ -23,6 +23,7 @@ import com.hangout.core.dtos.MediaPipelineInit;
 import io.quarkus.vertx.ConsumeEvent;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.ProcessingException;
 
 @ApplicationScoped
 public class ImageProcessor {
@@ -58,9 +59,9 @@ public class ImageProcessor {
                 writer.dispose();
             }
             imageFile.delete();
+            return Uni.createFrom().voidItem();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new ProcessingException("Image file could not be processed");
         }
-        return Uni.createFrom().voidItem();
     }
 }
