@@ -1,4 +1,4 @@
-package com.hangout.core.dtos;
+package com.hangout.core.storageservice.dtos;
 
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;

@@ -1,4 +1,4 @@
-package com.hangout.core.media_processors;
+package com.hangout.core.storageservice.media_processors;
 
 import java.io.File;
 import java.io.NotActiveException;
@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hangout.core.dtos.MediaPipelineInit;
+import com.hangout.core.storageservice.dtos.MediaPipelineInit;
 
 import io.quarkus.vertx.ConsumeEvent;
 import io.smallrye.mutiny.Uni;

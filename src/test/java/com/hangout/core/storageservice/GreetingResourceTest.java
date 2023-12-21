@@ -1,4 +1,4 @@
-package org.hangout.core;
+package com.hangout.core.storageservice;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -11,10 +11,10 @@ class GreetingResourceTest {
     @Test
     void testHelloEndpoint() {
         given()
-          .when().get("/hello")
-          .then()
-             .statusCode(200)
-             .body(is("Hello from RESTEasy Reactive"));
+                .when().get("/hello")
+                .then()
+                .statusCode(200)
+                .body(is("Hello from RESTEasy Reactive"));
     }
 
 }

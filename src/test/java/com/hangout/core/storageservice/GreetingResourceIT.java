@@ -1,4 +1,4 @@
-package org.hangout.core;
+package com.hangout.core.storageservice;
 
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 

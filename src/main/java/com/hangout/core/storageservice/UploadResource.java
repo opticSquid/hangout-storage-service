@@ -1,6 +1,6 @@
-package com.hangout.core;
+package com.hangout.core.storageservice;
 
-import com.hangout.core.dtos.IncomingRequestBody;
+import com.hangout.core.storageservice.dtos.IncomingRequestBody;
 
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;

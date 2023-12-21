@@ -1,4 +1,4 @@
-package com.hangout.core.dtos;
+package com.hangout.core.storageservice.dtos;
 
 import java.nio.file.Path;
 

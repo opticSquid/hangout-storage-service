@@ -1,8 +1,8 @@
-package com.hangout.core;
+package com.hangout.core.storageservice;
 
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
-import com.hangout.core.dtos.MediaPipelineInit;
+import com.hangout.core.storageservice.dtos.MediaPipelineInit;
 
 import io.vertx.mutiny.core.eventbus.EventBus;
 import jakarta.enterprise.context.ApplicationScoped;
