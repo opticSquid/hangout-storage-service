@@ -1,5 +1,6 @@
 package com.hangout.core.storageservice;
 
+import com.hangout.core.storageservice.dtos.FileUploadResponseDTO;
 import com.hangout.core.storageservice.dtos.IncomingRequestBody;
 
 import jakarta.enterprise.context.RequestScoped;
@@ -10,8 +11,9 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-@Path("upload")
+@Path("/upload")
 @RequestScoped
+//@RegisterRestClient(baseUri = "stork://hangout-storage-service")
 public class UploadResource {
     @Inject
     FileService fs;
@@ -19,7 +21,7 @@ public class UploadResource {
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
-    public String upload(IncomingRequestBody body) {
+    public FileUploadResponseDTO upload(IncomingRequestBody body) {
         return fs.processFile(body.file);
     }
 
