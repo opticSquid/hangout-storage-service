@@ -10,8 +10,8 @@ log:
 
 minio:
     base-url: localhost:9000
-    access-key: vLmiqXs8DUB2jwocd14W
-    secret-key: mK5ByFQJKbm2nsjBvyLmkggITrP0sdfSPbspvr45
+    access-key: ITtpzgn9Q0UjIbi0D71V
+    secret-key: ukUq1HHBUrjBXMEaTt55CilhNvvvEicnjT3SSqwH
     upload-bucket: hangout-upload-path
     storage-bucket: hangout-storage-path
     
