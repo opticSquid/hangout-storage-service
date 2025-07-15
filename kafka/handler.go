@@ -29,18 +29,16 @@ func (cgh *ConsumerGroupHandler) Cleanup(sarama.ConsumerGroupSession) error {
 // ConsumeClaim starts a consumer loop for each partition assigned to this handler
 func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
-		var head string = string(message.Key)
 		var body eventBody
 		err := json.Unmarshal(message.Value, &body)
 		if err != nil {
 			cgh.log.Error("error in unmarshalling", err)
 		} else {
-			event := files.File{ContentType: head, Filename: body.Filename, UserId: body.UserId}
+			event := files.File{Filename: body.Filename, ContentType: body.ContentType, UserId: body.UserId}
 			cgh.log.Debug("File Upload event occured",
 				"Topic", message.Topic,
 				"Partition", message.Partition,
 				"Offset", message.Offset,
-				"Key", event.ContentType,
 				"Value", string(message.Value),
 			)
 			// Send event to Files channel with non-blocking check
