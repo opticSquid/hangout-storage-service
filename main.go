@@ -42,7 +42,7 @@ func main() {
 	wp := worker.CreateWorkerPool(eventChan, ctx, CONFIG, log)
 
 	// Start the Kafka consumer
-	log.Info("starting kafka consumer using ConsumerGroup API")
+	log.Info("starting kafka consumer")
 	err := kafka.StartConsumer(eventChan, ctx, CONFIG, log)
 	if err != nil {
 		log.Error("Error starting Consumer Group")

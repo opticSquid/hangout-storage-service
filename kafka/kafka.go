@@ -22,7 +22,8 @@ func StartConsumer(eventChan chan<- *files.File, ctx context.Context, cfg *koanf
 		return err
 	}
 
-	log.Info("kafka consumer group configured")
+	log.Debug("configured kafka consumer group")
+	log.Info("trying to connect to kafka")
 	go consume(eventChan, consumerGroup, ctx, cfg, log)
 	return nil
 }
@@ -32,7 +33,7 @@ func configureKafka(cfg *koanf.Koanf) (sarama.ConsumerGroup, error) {
 	kafkaConfig.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRange()
 	kafkaConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
 	brokers := []string{cfg.String("kafka.url")}
-	return sarama.NewConsumerGroup(brokers, cfg.String("kafka.groupId"), kafkaConfig)
+	return sarama.NewConsumerGroup(brokers, cfg.String("kafka.group-id"), kafkaConfig)
 }
 
 func consume(eventChan chan<- *files.File, consumerGroup sarama.ConsumerGroup, ctx context.Context, cfg *koanf.Koanf, log logger.Log) {
