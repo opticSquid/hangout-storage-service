@@ -1,6 +1,5 @@
 kafka:
-  host: localhost
-  port: 9092
+  url: localhost:9092
   topic: content
   group-id: hangout-storage-service
 
@@ -12,9 +11,9 @@ minio:
     base-url: localhost:9000
     access-key: ITtpzgn9Q0UjIbi0D71V
     secret-key: ukUq1HHBUrjBXMEaTt55CilhNvvvEicnjT3SSqwH
-    upload-bucket: hangout-upload-path
-    storage-bucket: hangout-storage-path
+    upload-bucket: upload
+    storage-bucket: processed
     
 process:
-    queue-length: 100
+    queue-length: 4
     pool-strength: 4

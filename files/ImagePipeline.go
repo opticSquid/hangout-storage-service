@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"hangout.com/core/storage-service/config"
+	"github.com/knadh/koanf/v2"
 	"hangout.com/core/storage-service/logger"
 )
 
@@ -13,7 +13,7 @@ type image struct {
 	filename string
 }
 
-func (i *image) processMedia(workerId int, cfg *config.Config, log logger.Log) error {
+func (i *image) processMedia(workerId int, cfg *koanf.Koanf, log logger.Log) error {
 	splittedFilename := strings.Split(i.filename, ".")
 	inputFile := "/tmp/" + i.filename
 	outputFolder := "/tmp/" + splittedFilename[0]

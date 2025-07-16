@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"hangout.com/core/storage-service/config"
+	"github.com/knadh/koanf/v2"
 )
 
 type Log interface {
@@ -11,8 +11,8 @@ type Log interface {
 	Error(msg string, keysAndValues ...interface{})
 }
 
-func NewLogger(cfg *config.Config) Log {
-	if cfg.Log.Backend == "slog" {
+func NewLogger(cfg *koanf.Koanf) Log {
+	if cfg.String("log.backend") == "slog" {
 		return NewSlogLogger(cfg)
 	} else {
 		return NewZeroLogger(cfg)

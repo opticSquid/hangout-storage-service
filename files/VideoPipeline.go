@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"hangout.com/core/storage-service/config"
+	"github.com/knadh/koanf/v2"
 	"hangout.com/core/storage-service/files/abr"
 	"hangout.com/core/storage-service/files/h264"
 	"hangout.com/core/storage-service/files/postprocess"
@@ -16,7 +16,7 @@ type video struct {
 	filename string
 }
 
-func (v *video) processMedia(workerId int, cfg *config.Config, log logger.Log) error {
+func (v *video) processMedia(workerId int, cfg *koanf.Koanf, log logger.Log) error {
 	splittedFilename := strings.Split(v.filename, ".")
 	inputFile := "/tmp/" + v.filename
 	outputFolder := "/tmp/" + splittedFilename[0]

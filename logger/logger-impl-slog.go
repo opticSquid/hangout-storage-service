@@ -4,16 +4,16 @@ import (
 	"log/slog"
 	"os"
 
-	"hangout.com/core/storage-service/config"
+	"github.com/knadh/koanf/v2"
 )
 
 type slogLogger struct {
 	log *slog.Logger
 }
 
-func NewSlogLogger(cfg *config.Config) Log {
+func NewSlogLogger(cfg *koanf.Koanf) Log {
 	var logLevel slog.Level
-	switch cfg.Log.Level {
+	switch cfg.String("log.level") {
 	case "debug":
 		logLevel = slog.LevelDebug
 	case "warn":

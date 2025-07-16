@@ -4,7 +4,7 @@ import (
 	"errors"
 	"regexp"
 
-	"hangout.com/core/storage-service/config"
+	"github.com/knadh/koanf/v2"
 	"hangout.com/core/storage-service/logger"
 )
 
@@ -14,7 +14,7 @@ type File struct {
 	UserId      int32
 }
 
-func (f *File) Process(workerId int, cfg *config.Config, log logger.Log) error {
+func (f *File) Process(workerId int, cfg *koanf.Koanf, log logger.Log) error {
 	isImage, _ := regexp.MatchString(`^image/`, f.ContentType)
 	isVideo, _ := regexp.MatchString(`^video/`, f.ContentType)
 	var media media
