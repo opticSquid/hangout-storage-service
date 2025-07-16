@@ -17,3 +17,9 @@ minio:
 process:
     queue-length: 4
     pool-strength: 4
+
+datasource:
+  username: postgres
+  password: PkNLm@#2357
+  url: localhost:5432
+  dbname: posts

@@ -15,6 +15,7 @@ import (
 // Supports multi instance. All instances will join same consumer group.
 // Single consumer per instance
 func StartConsumer(eventChan chan<- *files.File, ctx context.Context, cfg *koanf.Koanf, log logger.Log) error {
+	log.Info("starting kafka consumer")
 	log.Debug("Configuring kafka client")
 	consumerGroup, err := configureKafka(cfg)
 	if err != nil {

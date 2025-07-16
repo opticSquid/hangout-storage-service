@@ -8,6 +8,7 @@ import (
 
 	"github.com/knadh/koanf/v2"
 	"hangout.com/core/storage-service/config"
+	"hangout.com/core/storage-service/database"
 	"hangout.com/core/storage-service/files"
 	"hangout.com/core/storage-service/kafka"
 	"hangout.com/core/storage-service/logger"
@@ -41,8 +42,11 @@ func main() {
 	log.Info("Creating worker pool", "pool-strength", CONFIG.Int("process.queue-length"))
 	wp := worker.CreateWorkerPool(eventChan, ctx, CONFIG, log)
 
+	// Start the database connection
+	dbpool := database.ConnectToDB(ctx, CONFIG, log)
+	defer dbpool.Close()
+
 	// Start the Kafka consumer
-	log.Info("starting kafka consumer")
 	err := kafka.StartConsumer(eventChan, ctx, CONFIG, log)
 	if err != nil {
 		log.Error("Error starting Consumer Group")
