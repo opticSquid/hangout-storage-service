@@ -1,10 +1,10 @@
 package files
 
 import (
-	"hangout.com/core/storage-service/config"
+	"github.com/knadh/koanf/v2"
 	"hangout.com/core/storage-service/logger"
 )
 
 type media interface {
-	processMedia(workerId int, cfg *config.Config, log logger.Log) error
+	processMedia(workerId int, cfg *koanf.Koanf, log logger.Log) error
 }

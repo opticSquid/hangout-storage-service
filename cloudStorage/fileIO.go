@@ -7,25 +7,25 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/knadh/koanf/v2"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"hangout.com/core/storage-service/config"
 	"hangout.com/core/storage-service/files"
 	"hangout.com/core/storage-service/logger"
 )
 
-func Connect(workerId int, ctx context.Context, cfg *config.Config, log logger.Log) (*minio.Client, error) {
+func Connect(workerId int, ctx context.Context, cfg *koanf.Koanf, log logger.Log) (*minio.Client, error) {
 	log.Info("connecting to Minio/s3", "worker-id", workerId)
 	useSsl := false
-	minioClient, err := minio.New(cfg.Minio.BaseUrl, &minio.Options{Creds: credentials.NewStaticV4(cfg.Minio.AccessKey, cfg.Minio.SecretKey, ""), Secure: useSsl})
+	minioClient, err := minio.New(cfg.String("minio.base-url"), &minio.Options{Creds: credentials.NewStaticV4(cfg.String("minio.access-key"), cfg.String("minio.secret-key"), ""), Secure: useSsl})
 	if err != nil {
-		log.Error("could not connect to Minio/s3", "url", cfg.Minio.BaseUrl, "error", err, "worker-id", workerId)
+		log.Error("could not connect to Minio/s3", "url", cfg.String("minio.base-url"), "error", err, "worker-id", workerId)
 	}
 	log.Info("Checking if buckets exist", "worker-id", workerId)
-	_, err = minioClient.BucketExists(ctx, cfg.Minio.UploadBucket)
+	_, err = minioClient.BucketExists(ctx, cfg.String("minio.upload-bucket"))
 	if err != nil {
 		log.Info("Upload bucket does not exist, Creating a new one", "worker-id", workerId)
-		err = minioClient.MakeBucket(ctx, cfg.Minio.UploadBucket, minio.MakeBucketOptions{})
+		err = minioClient.MakeBucket(ctx, cfg.String("minio.upload-bucket"), minio.MakeBucketOptions{})
 		if err != nil {
 			log.Error("Error in creating new upload bucket", "worker-id", workerId)
 		} else {
@@ -34,10 +34,10 @@ func Connect(workerId int, ctx context.Context, cfg *config.Config, log logger.L
 	} else {
 		log.Debug("Upload bucket exists skipping creation", "worker-id", workerId)
 	}
-	_, err = minioClient.BucketExists(ctx, cfg.Minio.StorageBucket)
+	_, err = minioClient.BucketExists(ctx, cfg.String("minio.storage-bucket"))
 	if err != nil {
 		log.Info("Storage bucket does not exist, Creating a new one", "worker-id", workerId)
-		err = minioClient.MakeBucket(ctx, cfg.Minio.StorageBucket, minio.MakeBucketOptions{})
+		err = minioClient.MakeBucket(ctx, cfg.String("minio.storage-bucket"), minio.MakeBucketOptions{})
 		if err != nil {
 			log.Error("Error in creating new storage bucket", "worker-id", workerId)
 		} else {
@@ -48,15 +48,15 @@ func Connect(workerId int, ctx context.Context, cfg *config.Config, log logger.L
 	}
 	return minioClient, err
 }
-func Download(workerId int, ctx context.Context, minioClient *minio.Client, file *files.File, cfg *config.Config, log logger.Log) {
+func Download(workerId int, ctx context.Context, minioClient *minio.Client, file *files.File, cfg *koanf.Koanf, log logger.Log) {
 	log.Info("Downloading file", "file", file.Filename, "worker-id", workerId)
-	err := minioClient.FGetObject(ctx, cfg.Minio.UploadBucket, file.Filename, "/tmp/"+file.Filename, minio.GetObjectOptions{})
+	err := minioClient.FGetObject(ctx, cfg.String("minio.upload-bucket"), file.Filename, "/tmp/"+file.Filename, minio.GetObjectOptions{})
 	if err != nil {
 		log.Error("Error occured while downloading file", "file", file.Filename, "worker-id", workerId)
 	}
 }
 
-func UploadDir(workerId int, ctx context.Context, minioClient *minio.Client, event *files.File, cfg *config.Config, log logger.Log) {
+func UploadDir(workerId int, ctx context.Context, minioClient *minio.Client, event *files.File, cfg *koanf.Koanf, log logger.Log) {
 	baseFilename := strings.Split(event.Filename, ".")[0]
 	currentDir := "/tmp/" + baseFilename
 	log.Info("Starting to upload directory to Minio/s3", "directory", currentDir, "worker-id", workerId)
@@ -90,8 +90,8 @@ func UploadDir(workerId int, ctx context.Context, minioClient *minio.Client, eve
 		log.Debug("opened file for uploading", "file", file.Name(), "worker-id", workerId)
 		// Upload the file
 		objectName := baseFilename + "/" + info.Name()
-		log.Debug("printing upload params", "storage-bucket", cfg.Minio.StorageBucket, "object-name", objectName, "file-location", file.Name(), "worker-id", workerId)
-		_, err = minioClient.FPutObject(ctx, cfg.Minio.StorageBucket, objectName, file.Name(), minio.PutObjectOptions{
+		log.Debug("printing upload params", "storage-bucket", cfg.String("minio.storage-bucket"), "object-name", objectName, "file-location", file.Name(), "worker-id", workerId)
+		_, err = minioClient.FPutObject(ctx, cfg.String("minio.storage-bucket"), objectName, file.Name(), minio.PutObjectOptions{
 			ContentType: contentType,
 		})
 		if err != nil {
@@ -117,8 +117,6 @@ func getContentType(extension string) string {
 		return "video/mp4"
 	case ".m4s":
 		return "video/iso.segment"
-	case ".avif":
-		return "image/avif"
 	default:
 		return mime.TypeByExtension(extension) // Fallback to the standard MIME detection
 	}

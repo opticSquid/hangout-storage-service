@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/knadh/koanf/v2"
 	cloudstorage "hangout.com/core/storage-service/cloudStorage"
-	"hangout.com/core/storage-service/config"
 	"hangout.com/core/storage-service/files"
 	"hangout.com/core/storage-service/logger"
 )
@@ -14,13 +14,13 @@ type WorkerPool struct {
 	eventChan <-chan *files.File
 	wg        *sync.WaitGroup
 	ctx       context.Context
-	cfg       *config.Config
+	cfg       *koanf.Koanf
 	log       logger.Log
 }
 
-func CreateWorkerPool(eventChan <-chan *files.File, ctx context.Context, cfg *config.Config, log logger.Log) *WorkerPool {
+func CreateWorkerPool(eventChan <-chan *files.File, ctx context.Context, cfg *koanf.Koanf, log logger.Log) *WorkerPool {
 	wp := &WorkerPool{eventChan: eventChan, wg: &sync.WaitGroup{}, ctx: ctx, cfg: cfg, log: log}
-	for i := 0; i < cfg.Process.PoolStrength; i++ {
+	for i := 0; i < cfg.Int("process.pool-strength"); i++ {
 		log.Debug("spawning worker", "worker-id", i)
 		wp.wg.Add(1)
 		go wp.worker(i)

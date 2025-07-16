@@ -3,16 +3,16 @@ package logger
 import (
 	"os"
 
+	"github.com/knadh/koanf/v2"
 	"github.com/rs/zerolog"
-	"hangout.com/core/storage-service/config"
 )
 
 type zeroLogger struct {
 	log zerolog.Logger
 }
 
-func NewZeroLogger(cfg *config.Config) Log {
-	switch cfg.Log.Level {
+func NewZeroLogger(cfg *koanf.Koanf) Log {
+	switch cfg.String("log.level") {
 	case "debug":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	case "warn":
