@@ -5,6 +5,6 @@ import (
 	"hangout.com/core/storage-service/logger"
 )
 
-type media interface {
+type mediaFile interface {
 	processMedia(workerId int, cfg *koanf.Koanf, log logger.Log) error
 }

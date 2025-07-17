@@ -6,20 +6,22 @@ import (
 
 	"github.com/knadh/koanf/v2"
 	cloudstorage "hangout.com/core/storage-service/cloudStorage"
+	"hangout.com/core/storage-service/database"
 	"hangout.com/core/storage-service/files"
 	"hangout.com/core/storage-service/logger"
 )
 
 type WorkerPool struct {
-	eventChan <-chan *files.File
-	wg        *sync.WaitGroup
-	ctx       context.Context
-	cfg       *koanf.Koanf
-	log       logger.Log
+	eventChan  <-chan *files.File
+	wg         *sync.WaitGroup
+	ctx        context.Context
+	cfg        *koanf.Koanf
+	dbConnPool *database.DatabaseConnectionPool
+	log        logger.Log
 }
 
-func CreateWorkerPool(eventChan <-chan *files.File, ctx context.Context, cfg *koanf.Koanf, log logger.Log) *WorkerPool {
-	wp := &WorkerPool{eventChan: eventChan, wg: &sync.WaitGroup{}, ctx: ctx, cfg: cfg, log: log}
+func CreateWorkerPool(eventChan <-chan *files.File, ctx context.Context, cfg *koanf.Koanf, dbConnPool *database.DatabaseConnectionPool, log logger.Log) *WorkerPool {
+	wp := &WorkerPool{eventChan: eventChan, wg: &sync.WaitGroup{}, ctx: ctx, cfg: cfg, dbConnPool: dbConnPool, log: log}
 	for i := 0; i < cfg.Int("process.pool-strength"); i++ {
 		log.Debug("spawning worker", "worker-id", i)
 		wp.wg.Add(1)
@@ -46,7 +48,7 @@ func (wp *WorkerPool) worker(workerId int) {
 			// download the given file from cloud storage
 			cloudstorage.Download(workerId, wp.ctx, minioClient, file, wp.cfg, wp.log)
 			// process the file
-			err := file.Process(workerId, wp.cfg, wp.log)
+			err := file.Process(workerId, wp.ctx, wp.cfg, wp.dbConnPool, wp.log)
 			if err != nil {
 				wp.log.Error("could not process file", "error", err.Error(), "worker-id", workerId)
 			}

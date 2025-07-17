@@ -35,16 +35,16 @@ func main() {
 
 	log.Info("starting Hangout Storage Service", "logging-backend", CONFIG.String("log.backend"))
 
+	// Start the database connection
+	dbConnpool := database.ConnectToDB(ctx, CONFIG, log)
+	defer dbConnpool.Close(log)
+
 	// Channel to handle incoming Kafka events
 	eventChan := make(chan *files.File, CONFIG.Int("process.queue-length"))
 
 	// Start the worker pool with the base context
 	log.Info("Creating worker pool", "pool-strength", CONFIG.Int("process.queue-length"))
-	wp := worker.CreateWorkerPool(eventChan, ctx, CONFIG, log)
-
-	// Start the database connection
-	dbpool := database.ConnectToDB(ctx, CONFIG, log)
-	defer dbpool.Close()
+	wp := worker.CreateWorkerPool(eventChan, ctx, CONFIG, dbConnpool, log)
 
 	// Start the Kafka consumer
 	err := kafka.StartConsumer(eventChan, ctx, CONFIG, log)

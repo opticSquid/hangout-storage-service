@@ -31,7 +31,11 @@ func (v *video) processMedia(workerId int, cfg *koanf.Koanf, log logger.Log) err
 		log.Error("error in video processing pipeline", "error", err.Error(), "worker-id", workerId)
 	}
 	postprocess.CleanUp(workerId, "h264", v.filename, log)
-	return nil
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
 }
 
 func processH264(workerId int, inputFilePath string, outputFolder string, filename string, log logger.Log) error {
