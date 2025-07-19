@@ -20,3 +20,8 @@ func KafkaConsumerError(msg string, err *error, log logger.Log) {
 	log.Error(msg, "error", err)
 	os.Exit(4)
 }
+
+func DbConnectionError(msg string, err *error, log logger.Log) {
+	log.Error(msg, "error", err)
+	os.Exit(5)
+}
