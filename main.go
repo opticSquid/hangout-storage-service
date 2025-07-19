@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,6 +13,7 @@ import (
 	"hangout.com/core/storage-service/files"
 	"hangout.com/core/storage-service/kafka"
 	"hangout.com/core/storage-service/logger"
+	"hangout.com/core/storage-service/telemetry"
 	"hangout.com/core/storage-service/worker"
 )
 
@@ -29,30 +31,41 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		log.Info("Received shutdown signal, cancelling context")
+		log.Info(ctx, "Received shutdown signal, cancelling context")
 		cancel()
 	}()
 
-	log.Info("starting Hangout Storage Service", "logging-backend", CONFIG.String("log.backend"))
+	log.Info(ctx, "starting Hangout Storage Service")
 
+	// Initialize Open Telemetry sdk
+	log.Info(ctx, "setting up telemetry")
+	otelShutdown, err := telemetry.SetUpOTelSDK(ctx, CONFIG, log)
+	if err != nil {
+		log.Error(ctx, "could not set up telemetry", "error", err)
+		return
+	}
+	// Handle shutdown properly so nothing leaks.
+	defer func() {
+		err = errors.Join(err, otelShutdown(context.Background()))
+	}()
 	// Start the database connection
 	dbConnpool := database.ConnectToDB(ctx, CONFIG, log)
-	defer dbConnpool.Close(log)
+	defer dbConnpool.Close(ctx, log)
 
 	// Channel to handle incoming Kafka events
 	eventChan := make(chan *files.File, CONFIG.Int("process.queue-length"))
 
 	// Start the worker pool with the base context
-	log.Info("Creating worker pool", "pool-strength", CONFIG.Int("process.queue-length"))
+	log.Info(ctx, "Creating worker pool", "pool-strength", CONFIG.Int("process.queue-length"))
 	wp := worker.CreateWorkerPool(eventChan, ctx, CONFIG, dbConnpool, log)
 
 	// Start the Kafka consumer
-	err := kafka.StartConsumer(eventChan, ctx, CONFIG, log)
+	err = kafka.StartConsumer(eventChan, ctx, CONFIG, log)
 	if err != nil {
-		log.Error("Error starting Consumer Group")
+		log.Error(ctx, "Error starting Consumer Group")
 	}
 
 	// Wait for all workers to finish on shutdown
 	wp.Wait()
-	log.Info("Hangout Storage Service shut down gracefully")
+	log.Info(ctx, "Hangout Storage Service shut down gracefully")
 }

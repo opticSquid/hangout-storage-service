@@ -1,8 +1,10 @@
 package logger
 
 import (
+	"context"
 	"log/slog"
-	"os"
+
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 
 	"github.com/knadh/koanf/v2"
 )
@@ -23,23 +25,24 @@ func NewSlogLogger(cfg *koanf.Koanf) Log {
 	default:
 		logLevel = slog.LevelInfo
 	}
-	sl := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+	sl := otelslog.NewLogger(cfg.String("application.name"))
+	slog.SetLogLoggerLevel(logLevel)
 	slog.SetDefault(sl)
 	return &slogLogger{log: sl}
 }
 
-func (sl *slogLogger) Debug(message string, keysAndValues ...interface{}) {
-	sl.log.Debug(message, keysAndValues...)
+func (sl *slogLogger) Debug(ctx context.Context, message string, keysAndValues ...any) {
+	sl.log.DebugContext(ctx, message, keysAndValues...)
 }
 
-func (sl *slogLogger) Info(message string, keysAndValues ...interface{}) {
-	sl.log.Info(message, keysAndValues...)
+func (sl *slogLogger) Info(ctx context.Context, message string, keysAndValues ...any) {
+	sl.log.InfoContext(ctx, message, keysAndValues...)
 }
 
-func (sl *slogLogger) Warn(message string, keysAndValues ...interface{}) {
-	sl.log.Warn(message, keysAndValues...)
+func (sl *slogLogger) Warn(ctx context.Context, message string, keysAndValues ...any) {
+	sl.log.WarnContext(ctx, message, keysAndValues...)
 }
 
-func (sl *slogLogger) Error(message string, keysAndValues ...interface{}) {
-	sl.log.Error(message, keysAndValues...)
+func (sl *slogLogger) Error(ctx context.Context, message string, keysAndValues ...any) {
+	sl.log.ErrorContext(ctx, message, keysAndValues...)
 }

@@ -16,21 +16,21 @@ type DatabaseConnectionPool struct {
 }
 
 func ConnectToDB(ctx context.Context, cfg *koanf.Koanf, log logger.Log) *DatabaseConnectionPool {
-	log.Info("connecting to database")
+	log.Info(ctx, "connecting to database")
 	password := cfg.String("datasource.password")
 	password = url.QueryEscape(password)
 	dbConnectionString := fmt.Sprintf("postgres://%s:%s@%s/%s", cfg.String("datasource.username"), password, cfg.String("datasource.url"), cfg.String("datasource.dbname"))
 	dbConnPool, err := pgxpool.New(ctx, dbConnectionString)
 	if err != nil {
-		exceptions.DbConnectionError("could not connect to database", &err, log)
+		exceptions.DbConnectionError(ctx, "could not connect to database", &err, log)
 	}
-	log.Info("successfully connected to database")
+	log.Info(ctx, "successfully connected to database")
 	return &DatabaseConnectionPool{pool: dbConnPool}
 }
 
-func (dbConn *DatabaseConnectionPool) Close(log logger.Log) {
+func (dbConn *DatabaseConnectionPool) Close(ctx context.Context, log logger.Log) {
 	if dbConn.pool != nil {
 		dbConn.pool.Close()
-		log.Info("closed database connection")
+		log.Info(ctx, "closed database connection")
 	}
 }

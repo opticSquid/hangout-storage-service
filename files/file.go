@@ -23,18 +23,18 @@ func (f *File) Process(workerId int, ctx context.Context, cfg *koanf.Koanf, dbCo
 	if isVideo {
 		mediaFile = &video{filename: f.Filename}
 	} else {
-		log.Debug("unsupported content type. can not process file", "contentType", f.ContentType, "file", f.Filename, "worker-id", workerId)
+		log.Debug(ctx, "unsupported content type. can not process file", "contentType", f.ContentType, "file", f.Filename, "worker-id", workerId)
 		return errors.New("unsupported file type received, contentType is: " + f.ContentType)
 	}
-	log.Info("marking file status as PROCESSING in db", "worker-id", workerId, "filename", f.Filename)
+	log.Info(ctx, "marking file status as PROCESSING in db", "worker-id", workerId, "filename", f.Filename)
 	dbConnPool.UpdateProcessingStatus(ctx, f.Filename, model.PROCESSING, log)
-	err := mediaFile.processMedia(workerId, cfg, log)
+	err := mediaFile.processMedia(workerId, ctx, cfg, log)
 	if err != nil {
-		log.Error("marking file status as FAILED in db", "worker-id", workerId, "filename", f.Filename)
+		log.Error(ctx, "marking file status as FAILED in db", "worker-id", workerId, "filename", f.Filename)
 		dbConnPool.UpdateProcessingStatus(ctx, f.Filename, model.FAIL, log)
 		return err
 	}
-	log.Info("marking file status as SUCCESS in db", "worker-id", workerId, "filename", f.Filename)
+	log.Info(ctx, "marking file status as SUCCESS in db", "worker-id", workerId, "filename", f.Filename)
 	dbConnPool.UpdateProcessingStatus(ctx, f.Filename, model.SUCCESS, log)
 	return nil
 }

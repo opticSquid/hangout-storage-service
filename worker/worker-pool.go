@@ -23,7 +23,7 @@ type WorkerPool struct {
 func CreateWorkerPool(eventChan <-chan *files.File, ctx context.Context, cfg *koanf.Koanf, dbConnPool *database.DatabaseConnectionPool, log logger.Log) *WorkerPool {
 	wp := &WorkerPool{eventChan: eventChan, wg: &sync.WaitGroup{}, ctx: ctx, cfg: cfg, dbConnPool: dbConnPool, log: log}
 	for i := 0; i < cfg.Int("process.pool-strength"); i++ {
-		log.Debug("spawning worker", "worker-id", i)
+		log.Debug(ctx, "spawning worker", "worker-id", i)
 		wp.wg.Add(1)
 		go wp.worker(i)
 	}
@@ -40,23 +40,23 @@ func (wp *WorkerPool) worker(workerId int) {
 		select {
 		case file, ok := <-wp.eventChan:
 			if !ok {
-				wp.log.Info("Event channel closed, stopping worker", "worker-id", workerId)
+				wp.log.Info(wp.ctx, "Event channel closed, stopping worker", "worker-id", workerId)
 				return
 			}
-			wp.log.Info("starting file processing", "file-name", file.Filename, "user-id", file.UserId, "worker-id", workerId)
+			wp.log.Info(wp.ctx, "starting file processing", "file-name", file.Filename, "user-id", file.UserId, "worker-id", workerId)
 
 			// download the given file from cloud storage
 			cloudstorage.Download(workerId, wp.ctx, minioClient, file, wp.cfg, wp.log)
 			// process the file
 			err := file.Process(workerId, wp.ctx, wp.cfg, wp.dbConnPool, wp.log)
 			if err != nil {
-				wp.log.Error("could not process file", "error", err.Error(), "worker-id", workerId)
+				wp.log.Error(wp.ctx, "could not process file", "error", err.Error(), "worker-id", workerId)
 			}
 			// upload the given file to cloud storage
 			cloudstorage.UploadDir(workerId, wp.ctx, minioClient, file, wp.cfg, wp.log)
-			wp.log.Info("finished file processing", "file-name", file.Filename, "worker-id", workerId)
+			wp.log.Info(wp.ctx, "finished file processing", "file-name", file.Filename, "worker-id", workerId)
 		case <-wp.ctx.Done():
-			wp.log.Info("Context cancelled, stopping worker", "worker-id", workerId)
+			wp.log.Info(wp.ctx, "Context cancelled, stopping worker", "worker-id", workerId)
 			return
 		}
 	}
