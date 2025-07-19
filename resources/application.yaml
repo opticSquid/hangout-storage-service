@@ -1,3 +1,6 @@
+application:
+  name: hangout-storage-service
+  
 kafka:
   url: localhost:9092
   topic: content
@@ -5,7 +8,6 @@ kafka:
 
 log:
   level: debug
-  backend: zerolog
 
 minio:
     base-url: localhost:9000

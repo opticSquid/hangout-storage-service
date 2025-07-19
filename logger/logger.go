@@ -2,19 +2,17 @@ package logger
 
 import (
 	"github.com/knadh/koanf/v2"
+	"golang.org/x/net/context"
 )
 
 type Log interface {
-	Debug(msg string, keysAndValues ...interface{})
-	Info(msg string, keysAndValues ...interface{})
-	Warn(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
+	Debug(ctx context.Context, msg string, keysAndValues ...any)
+	Info(ctx context.Context, msg string, keysAndValues ...any)
+	Warn(ctx context.Context, msg string, keysAndValues ...any)
+	Error(ctx context.Context, msg string, keysAndValues ...any)
+	With(keysAndValues ...any) Log
 }
 
 func NewLogger(cfg *koanf.Koanf) Log {
-	if cfg.String("log.backend") == "slog" {
-		return NewSlogLogger(cfg)
-	} else {
-		return NewZeroLogger(cfg)
-	}
+	return NewZeroLogger(cfg)
 }
