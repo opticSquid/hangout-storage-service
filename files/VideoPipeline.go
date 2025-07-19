@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/knadh/koanf/v2"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"hangout.com/core/storage-service/files/abr"
 	"hangout.com/core/storage-service/files/h264"
 	"hangout.com/core/storage-service/files/postprocess"
@@ -18,6 +20,12 @@ type video struct {
 }
 
 func (v *video) processMedia(ctx context.Context, cfg *koanf.Koanf, log logger.Log) error {
+	tr := otel.Tracer("hangout.storage.files")
+	ctx, span := tr.Start(ctx, "ProcessVideo")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("video.filename", v.filename),
+	)
 	splittedFilename := strings.Split(v.filename, ".")
 	inputFile := "/tmp/" + v.filename
 	outputFolder := "/tmp/" + splittedFilename[0]
@@ -40,25 +48,41 @@ func (v *video) processMedia(ctx context.Context, cfg *koanf.Koanf, log logger.L
 }
 
 func processH264(ctx context.Context, inputFilePath string, outputFolder string, filename string, log logger.Log) error {
-	log.Info(ctx, "pipeline checkpoint", "file", inputFilePath, "enocder", "h264", "status", "starting processing")
+	tr := otel.Tracer("hangout.storage.files")
+	ctx, span := tr.Start(ctx, "ProcessH264")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("video.filename", filename),
+		attribute.String("encoder", "h264"),
+	)
+	log = log.With("encoder", "h264")
+	log.Info(ctx, "pipeline checkpoint", "status", "starting processing")
 	outputFilePath := outputFolder + "/" + filename
 	log.Debug(ctx, "Check", "Input file path", inputFilePath)
 	log.Debug(ctx, "Check", "Output file path", outputFilePath)
 	h264.ProcessSDRResolutions(ctx, inputFilePath, outputFilePath, log)
 	h264.ProcessAudio(ctx, inputFilePath, outputFilePath, log)
 	abr.CreatePlaylist(ctx, outputFilePath, "h264", log)
-	log.Info(ctx, "pipeline checkpoint", "file", inputFilePath, "enocder", "h264", "status", "finished processing")
+	log.Info(ctx, "pipeline checkpoint", "file", inputFilePath, "status", "finished processing")
 	return nil
 }
 
 func processVp9(ctx context.Context, inputFilePath string, outputFolder string, filename string, log logger.Log) error {
-	log.Info(ctx, "pipeline checkpoint", "file", inputFilePath, "enocder", "vp9", "status", "starting processing")
+	tr := otel.Tracer("hangout.storage.files")
+	ctx, span := tr.Start(ctx, "ProcessVp9")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("video.filename", filename),
+		attribute.String("encoder", "vp9"),
+	)
+	log = log.With("encoder", "vp9")
+	log.Info(ctx, "pipeline checkpoint", "status", "starting processing")
 	outputFilePath := outputFolder + "/" + filename
-	log.Debug(ctx, "Input", "Input file path", inputFilePath)
-	log.Debug(ctx, "Input", "output file path", outputFilePath)
+	log.Debug(ctx, "Input")
+	log.Debug(ctx, "Output", "output file path", outputFilePath)
 	vp9.ProcessSDRResolutions(ctx, inputFilePath, outputFilePath, log)
 	vp9.ProcessAudio(ctx, inputFilePath, outputFilePath, log)
 	abr.CreatePlaylist(ctx, outputFilePath, "vp9", log)
-	log.Info(ctx, "pipeline checkpoint", "file", inputFilePath, "enocder", "vp9", "status", "finished processing")
+	log.Info(ctx, "pipeline checkpoint", "status", "finished processing")
 	return nil
 }

@@ -4,10 +4,19 @@ import (
 	"context"
 	"os/exec"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"hangout.com/core/storage-service/logger"
 )
 
 func CreatePlaylist(ctx context.Context, outputFilePath string, encoding string, log logger.Log) error {
+	tr := otel.Tracer("hangout.storage.files")
+	ctx, span := tr.Start(ctx, "CreatePlaylist")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("outputFilePath", outputFilePath),
+		attribute.String("video-encoding", encoding),
+	)
 	log.Info(ctx, "pipeline status status", "segementation and playlist creation", "starting")
 	videoFile := outputFilePath + "_" + encoding + "_"
 	audioFile := outputFilePath + "_" + encoding + "_audio.mp4"

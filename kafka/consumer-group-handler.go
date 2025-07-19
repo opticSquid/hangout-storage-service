@@ -55,21 +55,26 @@ func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSessio
 				"Topic", message.Topic,
 				"Partition", message.Partition,
 				"Offset", message.Offset,
+				"Header", message.Headers,
 				"Value", string(message.Value),
 			)
 			select {
 			case cgh.Files <- &event:
 				session.MarkMessage(message, "")
+				span.End()
 			default:
 				cgh.log.Warn(ctx, "File channel is full, unable to process event",
 					"FileName", event.Filename,
 					"ContentType", event.ContentType,
 					"Partition", message.Partition,
 					"Offset", message.Offset,
+					"Header", message.Headers,
+					"Value", string(message.Value),
 				)
+				span.End()
 			}
 		}
-		span.End()
+
 	}
 	return nil
 }

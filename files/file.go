@@ -28,6 +28,7 @@ func (f *File) Process(workerContext context.Context, cfg *koanf.Koanf, dbConnPo
 		attribute.String("file.name", f.Filename),
 		attribute.Int("file.userId", int(f.UserId)),
 	)
+	log = log.With("file", f.Filename, "userId", f.UserId)
 	isVideo, _ := regexp.MatchString(`^video/`, f.ContentType)
 	var mediaFile mediaFile
 	if isVideo {
