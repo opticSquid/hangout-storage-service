@@ -81,7 +81,6 @@ func SetUpOTelSDK(ctx context.Context, cfg *koanf.Koanf, log logger.Log) (shutdo
 func newPropagator() propagation.TextMapPropagator {
 	return propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
-		propagation.Baggage{},
 	)
 }
 

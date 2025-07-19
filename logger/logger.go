@@ -6,10 +6,11 @@ import (
 )
 
 type Log interface {
-	Debug(ctx context.Context, msg string, keysAndValues ...interface{})
-	Info(ctx context.Context, msg string, keysAndValues ...interface{})
-	Warn(ctx context.Context, msg string, keysAndValues ...interface{})
-	Error(ctx context.Context, msg string, keysAndValues ...interface{})
+	Debug(ctx context.Context, msg string, keysAndValues ...any)
+	Info(ctx context.Context, msg string, keysAndValues ...any)
+	Warn(ctx context.Context, msg string, keysAndValues ...any)
+	Error(ctx context.Context, msg string, keysAndValues ...any)
+	With(keysAndValues ...any) Log
 }
 
 func NewLogger(cfg *koanf.Koanf) Log {

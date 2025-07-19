@@ -5,7 +5,6 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/knadh/koanf/v2"
-	"go.opentelemetry.io/otel"
 	"hangout.com/core/storage-service/exceptions"
 	"hangout.com/core/storage-service/files"
 	"hangout.com/core/storage-service/logger"
@@ -16,10 +15,6 @@ import (
 // Supports multi instance. All instances will join same consumer group.
 // Single consumer per instance
 func StartConsumer(eventChan chan<- *files.File, ctx context.Context, cfg *koanf.Koanf, log logger.Log) error {
-	tr := otel.Tracer("hangout.storage.kafka")
-	ctx, span := tr.Start(ctx, "StartKafkaConsumer")
-	defer span.End()
-
 	log.Info(ctx, "starting kafka consumer")
 	log.Debug(ctx, "Configuring kafka client")
 	consumerGroup, err := configureKafka(cfg)

@@ -37,6 +37,7 @@ func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSessio
 	for message := range claim.Messages() {
 		ctx, span := tr.Start(cgh.ctx, "ConsumeKafkaMessage")
 		span.SetAttributes(
+			attribute.String("type", "consumer"),
 			attribute.String("messaging.system", "kafka"),
 			attribute.String("messaging.destination", message.Topic),
 			attribute.Int64("messaging.kafka.partition", int64(message.Partition)),
@@ -49,7 +50,7 @@ func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSessio
 			span.SetStatus(codes.Error, err.Error())
 			cgh.log.Error(ctx, "error in unmarshalling", err)
 		} else {
-			event := files.File{Filename: body.Filename, ContentType: body.ContentType, UserId: body.UserId}
+			event := files.File{Context: ctx, Filename: body.Filename, ContentType: body.ContentType, UserId: body.UserId}
 			cgh.log.Debug(ctx, "File Upload event occured",
 				"Topic", message.Topic,
 				"Partition", message.Partition,

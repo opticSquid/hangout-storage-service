@@ -44,3 +44,7 @@ func (zl *zeroLogger) Warn(ctx context.Context, msg string, keysAndValues ...any
 func (zl *zeroLogger) Error(ctx context.Context, msg string, keysAndValues ...any) {
 	zl.log.Error().Ctx(ctx).Fields(keysAndValues).Msg(msg)
 }
+
+func (zl *zeroLogger) With(keysAndValues ...any) Log {
+	return &zeroLogger{log: zl.log.With().Fields(keysAndValues).Logger()}
+}

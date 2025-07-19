@@ -8,5 +8,5 @@ import (
 )
 
 type mediaFile interface {
-	processMedia(workerId int, ctx context.Context, cfg *koanf.Koanf, log logger.Log) error
+	processMedia(ctx context.Context, cfg *koanf.Koanf, log logger.Log) error
 }
