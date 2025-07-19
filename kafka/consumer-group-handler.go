@@ -78,7 +78,6 @@ func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSessio
 				"Topic", message.Topic,
 				"Partition", message.Partition,
 				"Offset", message.Offset,
-				"Header", message.Headers,
 				"Value", string(message.Value),
 			)
 			select {
@@ -91,7 +90,6 @@ func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSessio
 					"ContentType", event.ContentType,
 					"Partition", message.Partition,
 					"Offset", message.Offset,
-					"Header", message.Headers,
 					"Value", string(message.Value),
 				)
 				span.End()
