@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"time"
 
 	"github.com/knadh/koanf/v2"
 	"go.opentelemetry.io/otel"
@@ -21,9 +22,15 @@ type File struct {
 }
 
 func (f *File) Process(workerContext context.Context, cfg *koanf.Koanf, dbConnPool *database.DatabaseConnectionPool, log logger.Log) error {
+	initFileProcessMetrics("file_process_duration", "Duration of file processing in seconds")
+	start := time.Now()
 	tr := otel.Tracer("hangout.storage.file")
 	ctx, span := tr.Start(workerContext, "ProcessFile")
-	defer span.End()
+	defer func() {
+		span.End()
+		duration := time.Since(start).Seconds()
+		processDuration.Record(ctx, float64(duration))
+	}()
 	span.SetAttributes(
 		attribute.String("file.name", f.Filename),
 		attribute.Int("file.userId", int(f.UserId)),
