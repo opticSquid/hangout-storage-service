@@ -5,9 +5,13 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"github.com/knadh/koanf/v2"
+	"github.com/shirou/gopsutil/v3/process"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 	"hangout.com/core/storage-service/config"
 	"hangout.com/core/storage-service/database"
 	"hangout.com/core/storage-service/files"
@@ -48,6 +52,11 @@ func main() {
 	defer func() {
 		err = errors.Join(err, otelShutdown(context.Background()))
 	}()
+
+	log.Debug(ctx, "starting to send metrics")
+	// Start process metrics collection
+	startProcessMetrics(ctx, log)
+
 	// Start the database connection
 	dbConnpool := database.ConnectToDB(ctx, CONFIG, log)
 	defer dbConnpool.Close(ctx, log)
@@ -68,4 +77,43 @@ func main() {
 	// Wait for all workers to finish on shutdown
 	wp.Wait()
 	log.Info(ctx, "Hangout Storage Service shut down gracefully")
+}
+
+// startProcessMetrics initializes and starts the process metrics collection
+// It uses OpenTelemetry to collect memory usage, CPU percentage, and goroutine count
+func startProcessMetrics(ctx context.Context, log logger.Log) {
+	meter := otel.GetMeterProvider().Meter("hangout.storage.metrics")
+
+	memUsage, _ := meter.Float64ObservableGauge("process_memory_usage")
+	goroutines, _ := meter.Int64ObservableGauge("process_goroutines")
+	cpuPercent, _ := meter.Float64ObservableGauge("process_cpu_percent")
+	gcPause, _ := meter.Float64ObservableGauge("process_gc_pause_total_ns")
+	gcCount, _ := meter.Int64ObservableGauge("process_gc_count")
+
+	proc, err := process.NewProcess(int32(os.Getpid()))
+	if err != nil {
+		log.Error(ctx, "failed to get process info for CPU metrics", "error", err)
+	}
+
+	_, err = meter.RegisterCallback(
+		func(ctx context.Context, o metric.Observer) error {
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
+			o.ObserveFloat64(memUsage, float64(m.Alloc))
+			o.ObserveInt64(goroutines, int64(runtime.NumGoroutine()))
+			o.ObserveFloat64(gcPause, float64(m.PauseTotalNs))
+			o.ObserveInt64(gcCount, int64(m.NumGC))
+
+			if proc != nil {
+				if percent, err := proc.CPUPercent(); err == nil {
+					o.ObserveFloat64(cpuPercent, percent)
+				}
+			}
+			return nil
+		},
+		memUsage, goroutines, cpuPercent, gcPause, gcCount,
+	)
+	if err != nil {
+		log.Error(ctx, "failed to register metrics callback", "error", err)
+	}
 }
