@@ -84,7 +84,8 @@ func main() {
 func startProcessMetrics(ctx context.Context, log logger.Log) {
 	meter := otel.GetMeterProvider().Meter("hangout.storage.metrics")
 
-	memUsage, _ := meter.Float64ObservableGauge("process_memory_usage")
+	heapMemUsage, _ := meter.Float64ObservableGauge("process_heap_memory_usage_bytes")
+	stackMemUsage, _ := meter.Float64ObservableGauge("process_stack_memory_usage_bytes")
 	goroutines, _ := meter.Int64ObservableGauge("process_goroutines")
 	cpuPercent, _ := meter.Float64ObservableGauge("process_cpu_percent")
 	gcPause, _ := meter.Float64ObservableGauge("process_gc_pause_total_ns")
@@ -99,7 +100,8 @@ func startProcessMetrics(ctx context.Context, log logger.Log) {
 		func(ctx context.Context, o metric.Observer) error {
 			var m runtime.MemStats
 			runtime.ReadMemStats(&m)
-			o.ObserveFloat64(memUsage, float64(m.Alloc))
+			o.ObserveFloat64(heapMemUsage, float64(m.Alloc))
+			o.ObserveFloat64(stackMemUsage, float64(m.StackInuse))
 			o.ObserveInt64(goroutines, int64(runtime.NumGoroutine()))
 			o.ObserveFloat64(gcPause, float64(m.PauseTotalNs))
 			o.ObserveInt64(gcCount, int64(m.NumGC))
@@ -111,7 +113,7 @@ func startProcessMetrics(ctx context.Context, log logger.Log) {
 			}
 			return nil
 		},
-		memUsage, goroutines, cpuPercent, gcPause, gcCount,
+		heapMemUsage, stackMemUsage, goroutines, cpuPercent, gcPause, gcCount,
 	)
 	if err != nil {
 		log.Error(ctx, "failed to register metrics callback", "error", err)
