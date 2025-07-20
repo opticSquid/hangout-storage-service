@@ -1,4 +1,4 @@
-package files
+package pipeline
 
 import (
 	"context"
@@ -15,19 +15,19 @@ import (
 	"hangout.com/core/storage-service/logger"
 )
 
-type video struct {
-	filename string
+type Video struct {
+	Filename string
 }
 
-func (v *video) processMedia(ctx context.Context, cfg *koanf.Koanf, log logger.Log) error {
+func (v *Video) ProcessMedia(ctx context.Context, cfg *koanf.Koanf, log logger.Log) error {
 	tr := otel.Tracer("hangout.storage.files")
 	ctx, span := tr.Start(ctx, "ProcessVideo")
 	defer span.End()
 	span.SetAttributes(
-		attribute.String("video.filename", v.filename),
+		attribute.String("video.filename", v.Filename),
 	)
-	splittedFilename := strings.Split(v.filename, ".")
-	inputFile := "/tmp/" + v.filename
+	splittedFilename := strings.Split(v.Filename, ".")
+	inputFile := "/tmp/" + v.Filename
 	outputFolder := "/tmp/" + splittedFilename[0]
 	filename := splittedFilename[0]
 	var err error
@@ -39,7 +39,7 @@ func (v *video) processMedia(ctx context.Context, cfg *koanf.Koanf, log logger.L
 	if err != nil {
 		log.Error(ctx, "error in video processing pipeline", "error", err.Error())
 	}
-	postprocess.CleanUp(ctx, "h264", v.filename, log)
+	postprocess.CleanUp(ctx, "h264", v.Filename, log)
 	if err != nil {
 		return err
 	} else {
