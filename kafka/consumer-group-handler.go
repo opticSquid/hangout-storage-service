@@ -31,30 +31,11 @@ func (cgh *ConsumerGroupHandler) Cleanup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-// Helper type to adapt Sarama headers to OpenTelemetry TextMapCarrier
-type kafkaHeaderCarrier []*sarama.RecordHeader
-
-func (c kafkaHeaderCarrier) Get(key string) string {
-	for _, h := range c {
-		if string(h.Key) == key {
-			return string(h.Value)
-		}
-	}
-	return ""
-}
-func (c kafkaHeaderCarrier) Set(key, value string) {}
-func (c kafkaHeaderCarrier) Keys() []string {
-	keys := make([]string, 0, len(c))
-	for _, h := range c {
-		keys = append(keys, string(h.Key))
-	}
-	return keys
-}
-
 // ConsumeClaim starts a consumer loop for each partition assigned to this handler
 func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	tr := otel.Tracer("hangout.storage.kafka")
 	propagator := otel.GetTextMapPropagator()
+	initConsumerMetrics() // <-- ensure metric is initialized
 	for message := range claim.Messages() {
 		carrier := kafkaHeaderCarrier(message.Headers)
 		parentCtx := propagator.Extract(cgh.ctx, carrier)
@@ -83,6 +64,7 @@ func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSessio
 			select {
 			case cgh.Files <- &event:
 				session.MarkMessage(message, "")
+				consumedEventsCounter.Add(ctx, 1) // <-- increment counter
 				span.End()
 			default:
 				cgh.log.Warn(ctx, "File channel is full, unable to process event",
