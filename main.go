@@ -84,12 +84,12 @@ func main() {
 func startProcessMetrics(ctx context.Context, log logger.Log) {
 	meter := otel.GetMeterProvider().Meter("hangout.storage.metrics")
 
-	heapMemUsage, _ := meter.Float64ObservableGauge("process_heap_memory_usage_bytes")
-	stackMemUsage, _ := meter.Float64ObservableGauge("process_stack_memory_usage_bytes")
-	goroutines, _ := meter.Int64ObservableGauge("process_goroutines")
-	cpuPercent, _ := meter.Float64ObservableGauge("process_cpu_percent")
-	gcPause, _ := meter.Float64ObservableGauge("process_gc_pause_total_ns")
-	gcCount, _ := meter.Int64ObservableGauge("process_gc_count")
+	heapMemUsage, _ := meter.Float64ObservableGauge("go_heap_memory_usage")
+	stackMemUsage, _ := meter.Float64ObservableGauge("go_stack_memory_usage")
+	goroutines, _ := meter.Int64ObservableGauge("go_goroutines_count")
+	cpuPercent, _ := meter.Float64ObservableGauge("go_cpu_time_used")
+	gcCount, _ := meter.Int64ObservableGauge("go_gc_cycle_count")
+	gcPause, _ := meter.Float64ObservableGauge("go_gc_all_stop_pause_time_sum")
 
 	proc, err := process.NewProcess(int32(os.Getpid()))
 	if err != nil {
