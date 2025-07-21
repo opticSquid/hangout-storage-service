@@ -16,6 +16,6 @@ func initFileProcessMetrics(metricName string, metricDesc string) {
 	// Initialize file process metrics here
 	initOnce.Do(func() {
 		meter := otel.GetMeterProvider().Meter("hangout.storage.file")
-		processDuration, _ = meter.Float64Histogram(metricName, metric.WithDescription(metricDesc), metric.WithExplicitBucketBoundaries(0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360, 390, 420, 450, 480, 510, 540, 570, 600))
+		processDuration, _ = meter.Float64Histogram(metricName, metric.WithDescription(metricDesc), metric.WithExplicitBucketBoundaries(5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60))
 	})
 }

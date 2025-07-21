@@ -30,7 +30,7 @@ func (f *File) Process(workerContext context.Context, cfg *koanf.Koanf, dbConnPo
 	ctx, span := tr.Start(workerContext, "ProcessFile")
 	defer func() {
 		span.End()
-		duration := time.Since(start).Seconds()
+		duration := time.Since(start).Minutes()
 		processDuration.Record(ctx, float64(duration))
 	}()
 	span.SetAttributes(
