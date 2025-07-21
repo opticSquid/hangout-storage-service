@@ -3,6 +3,7 @@ package telemetry
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/knadh/koanf/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
@@ -42,7 +43,11 @@ func SetUpOTelSDK(ctx context.Context, cfg *koanf.Koanf, log logger.Log) (shutdo
 	}
 
 	// Set up resource
-	res := resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceName(cfg.String("application.name")))
+	res := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceName(cfg.String("application.name")),
+		semconv.ServiceInstanceID(uuid.New().String()),
+	)
 
 	// Set up propagator.
 	prop := newPropagator()

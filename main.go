@@ -7,11 +7,8 @@ import (
 	"os/signal"
 	"runtime"
 	"syscall"
-	"time"
 
 	"github.com/knadh/koanf/v2"
-	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/mem"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	"hangout.com/core/storage-service/config"
@@ -85,8 +82,6 @@ func main() {
 // It uses OpenTelemetry to collect memory usage, CPU percentage, and goroutine count
 func startProcessMetrics(ctx context.Context, log logger.Log) {
 	meter := otel.GetMeterProvider().Meter("hangout.storage.metrics")
-	cpuPercent, _ := meter.Float64ObservableGauge("system_cpu_usage")
-	systemMemUsage, _ := meter.Float64ObservableGauge("system_memory_usage")
 	heapMemUsage, _ := meter.Float64ObservableGauge("go_heap_memory_usage")
 	stackMemUsage, _ := meter.Float64ObservableGauge("go_stack_memory_usage")
 	goRoutineCount, _ := meter.Int64ObservableGauge("go_goroutines_count")
@@ -103,17 +98,9 @@ func startProcessMetrics(ctx context.Context, log logger.Log) {
 			o.ObserveFloat64(gcPause, float64(m.PauseTotalNs))
 			o.ObserveInt64(gcCount, int64(m.NumGC))
 
-			// Get CPU usage
-			if percent, err := cpu.Percent(time.Second, false); err == nil {
-				o.ObserveFloat64(cpuPercent, percent[0])
-			}
-			// Get memory usage
-			if memory, err := mem.VirtualMemory(); err == nil {
-				o.ObserveFloat64(systemMemUsage, float64(memory.Used))
-			}
 			return nil
 		},
-		cpuPercent, systemMemUsage, heapMemUsage, stackMemUsage, goRoutineCount, gcCount, gcPause,
+		heapMemUsage, stackMemUsage, goRoutineCount, gcCount, gcPause,
 	)
 	if err != nil {
 		log.Error(ctx, "failed to register metrics callback", "error", err)
