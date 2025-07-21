@@ -1,0 +1,7 @@
+minio:
+    access-key: ITtpzgn9Q0UjIbi0D71V
+    secret-key: ukUq1HHBUrjBXMEaTt55CilhNvvvEicnjT3SSqwH
+
+datasource:
+  password: PkNLm@#2357
+  url: localhost:5432
