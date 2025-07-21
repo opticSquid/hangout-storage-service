@@ -11,8 +11,6 @@ log:
 
 minio:
     base-url: localhost:9000
-    access-key: ITtpzgn9Q0UjIbi0D71V
-    secret-key: ukUq1HHBUrjBXMEaTt55CilhNvvvEicnjT3SSqwH
     upload-bucket: upload
     storage-bucket: processed
     
@@ -22,8 +20,6 @@ process:
 
 datasource:
   username: postgres
-  password: PkNLm@#2357
-  url: localhost:5432
   dbname: posts
 
 otel:
