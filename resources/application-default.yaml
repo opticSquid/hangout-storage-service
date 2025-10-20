@@ -13,8 +13,10 @@ s3:
   storage-bucket: hangout-processed
 
 datasource:
+  username: postgres
   password: PkNLm@#2357
   url: localhost:5432
+  dbname: posts
 
 log:
   level: debug
