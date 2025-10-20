@@ -84,7 +84,7 @@ func Download(ctx context.Context, s3Client *s3.Client, file *files.File, cfg *k
 
 	log.Info(ctx, "Downloading file from S3", "file", file.Filename)
 
-	downloadBucket := cfg.String("s3.upload-bucket")
+	downloadBucket := cfg.String("aws.s3.upload-bucket")
 	outputPath := "/tmp/" + file.Filename
 
 	out, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
@@ -129,7 +129,7 @@ func UploadDir(ctx context.Context, s3Client *s3.Client, event *files.File, cfg 
 
 	baseFilename := strings.Split(event.Filename, ".")[0]
 	currentDir := "/tmp/" + baseFilename
-	storageBucket := cfg.String("s3.storage-bucket")
+	storageBucket := cfg.String("aws.s3.storage-bucket")
 
 	log.Info(ctx, "Starting to upload directory to S3", "directory", currentDir)
 
