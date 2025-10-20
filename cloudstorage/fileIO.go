@@ -2,14 +2,18 @@ package cloudstorage
 
 import (
 	"context"
+	"fmt"
 	"mime"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+
+	// "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/knadh/koanf/v2"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -17,116 +21,165 @@ import (
 	"hangout.com/core/storage-service/logger"
 )
 
-func Connect(workerId int, ctx context.Context, cfg *koanf.Koanf, log logger.Log) (*minio.Client, error) {
-	log.Info(ctx, "connecting to Minio/s3", "worker-id", workerId)
-	useSsl := false
-	minioClient, err := minio.New(cfg.String("minio.base-url"), &minio.Options{Creds: credentials.NewStaticV4(cfg.String("minio.access-key"), cfg.String("minio.secret-key"), ""), Secure: useSsl})
+func Connect(workerId int, ctx context.Context, cfg *koanf.Koanf, log logger.Log) (*s3.Client, error) {
+	log.Info(ctx, "connecting to AWS S3", "worker-id", workerId)
+
+	region := cfg.String("aws.region")
+
+	// Load default AWS config (automatically uses instance IAM role)
+	awsCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
-		log.Error(ctx, "could not connect to Minio/s3", "url", cfg.String("minio.base-url"), "error", err, "worker-id", workerId)
+		log.Error(ctx, "could not load AWS configuration", "error", err)
+		return nil, err
 	}
-	log.Info(ctx, "Checking if buckets exist", "worker-id", workerId)
-	_, err = minioClient.BucketExists(ctx, cfg.String("minio.upload-bucket"))
-	if err != nil {
-		log.Info(ctx, "Upload bucket does not exist, Creating a new one", "worker-id", workerId)
-		err = minioClient.MakeBucket(ctx, cfg.String("minio.upload-bucket"), minio.MakeBucketOptions{})
-		if err != nil {
-			log.Error(ctx, "Error in creating new upload bucket", "worker-id", workerId)
-		} else {
-			log.Info(ctx, "Upload bucket successfully created", "worker-id", workerId)
-		}
-	} else {
-		log.Debug(ctx, "Upload bucket exists skipping creation", "worker-id", workerId)
-	}
-	_, err = minioClient.BucketExists(ctx, cfg.String("minio.storage-bucket"))
-	if err != nil {
-		log.Info(ctx, "Storage bucket does not exist, Creating a new one", "worker-id", workerId)
-		err = minioClient.MakeBucket(ctx, cfg.String("minio.storage-bucket"), minio.MakeBucketOptions{})
-		if err != nil {
-			log.Error(ctx, "Error in creating new storage bucket", "worker-id", workerId)
-		} else {
-			log.Info(ctx, "Storage bucket successfully created", "worker-id", workerId)
-		}
-	} else {
-		log.Debug(ctx, "Storage bucket exists skipping creation", "worker-id", workerId)
-	}
-	return minioClient, err
+
+	s3Client := s3.NewFromConfig(awsCfg)
+
+	uploadBucket := cfg.String("s3.upload-bucket")
+	storageBucket := cfg.String("s3.storage-bucket")
+
+	checkAndCreateBucket(ctx, s3Client, uploadBucket, log, workerId)
+	checkAndCreateBucket(ctx, s3Client, storageBucket, log, workerId)
+
+	return s3Client, nil
 }
-func Download(ctx context.Context, minioClient *minio.Client, file *files.File, cfg *koanf.Koanf, log logger.Log) {
+
+// helper to ensure a bucket exists
+func checkAndCreateBucket(ctx context.Context, client *s3.Client, bucket string, log logger.Log, workerId int) {
+	_, err := client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: aws.String(bucket)})
+	if err == nil {
+		log.Debug(ctx, "Bucket exists", "bucket", bucket, "worker-id", workerId)
+		return
+	}
+
+	var notFound bool
+	// var ae *types.NotFound
+	if strings.Contains(err.Error(), "NotFound") {
+		notFound = true
+	}
+
+	if notFound {
+		log.Info(ctx, "Bucket does not exist, creating", "bucket", bucket, "worker-id", workerId)
+		_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{
+			Bucket: aws.String(bucket),
+		})
+		if err != nil {
+			log.Error(ctx, "Failed to create bucket", "bucket", bucket, "error", err, "worker-id", workerId)
+		} else {
+			log.Info(ctx, "Bucket created successfully", "bucket", bucket, "worker-id", workerId)
+		}
+	} else {
+		log.Error(ctx, "Error checking bucket", "bucket", bucket, "error", err, "worker-id", workerId)
+	}
+}
+func Download(ctx context.Context, s3Client *s3.Client, file *files.File, cfg *koanf.Koanf, log logger.Log) {
 	tr := otel.Tracer("hangout.storage.cloudstorage")
 	ctx, span := tr.Start(ctx, "DownloadFile")
 	defer span.End()
+
 	span.SetAttributes(
 		attribute.String("file.name", file.Filename),
 		attribute.Int("file.userId", int(file.UserId)),
 	)
-	log.Info(ctx, "Downloading file", "file", file.Filename)
-	err := minioClient.FGetObject(ctx, cfg.String("minio.upload-bucket"), file.Filename, "/tmp/"+file.Filename, minio.GetObjectOptions{})
+
+	log.Info(ctx, "Downloading file from S3", "file", file.Filename)
+
+	downloadBucket := cfg.String("s3.upload-bucket")
+	outputPath := "/tmp/" + file.Filename
+
+	out, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(downloadBucket),
+		Key:    aws.String(file.Filename),
+	})
 	if err != nil {
-		log.Error(ctx, "Error occured while downloading file", "file", file.Filename)
+		log.Error(ctx, "Error while downloading file", "file", file.Filename, "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return
 	}
+	defer out.Body.Close()
+
+	f, err := os.Create(outputPath)
+	if err != nil {
+		log.Error(ctx, "Could not create local file", "path", outputPath, "error", err)
+		span.RecordError(err)
+		return
+	}
+	defer f.Close()
+
+	_, err = f.ReadFrom(out.Body)
+	if err != nil {
+		log.Error(ctx, "Error saving file", "file", outputPath, "error", err)
+		span.RecordError(err)
+		return
+	}
+
+	log.Info(ctx, "File downloaded successfully", "path", outputPath)
 }
 
-func UploadDir(ctx context.Context, minioClient *minio.Client, event *files.File, cfg *koanf.Koanf, log logger.Log) {
+func UploadDir(ctx context.Context, s3Client *s3.Client, event *files.File, cfg *koanf.Koanf, log logger.Log) {
 	tr := otel.Tracer("hangout.storage.cloudstorage")
 	ctx, span := tr.Start(ctx, "UploadDir")
 	defer span.End()
+
 	span.SetAttributes(
 		attribute.String("file.name", event.Filename),
 		attribute.Int("file.userId", int(event.UserId)),
 	)
+
 	baseFilename := strings.Split(event.Filename, ".")[0]
 	currentDir := "/tmp/" + baseFilename
-	log.Info(ctx, "Starting to upload directory to Minio/s3", "directory", currentDir)
-	// Walk through the folder and upload files
+	storageBucket := cfg.String("s3.storage-bucket")
+
+	log.Info(ctx, "Starting to upload directory to S3", "directory", currentDir)
+
 	err := filepath.Walk(currentDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Error(ctx, "Error occured while traversing through current file in the directory", "file", event.Filename, "error", err)
+			log.Error(ctx, "Error traversing file", "file", path, "error", err)
 			return err
 		}
-		log.Debug(ctx, "trying to upload file", "file name", info.Name(), "path", path)
-		// Skip directories
+
 		if info.IsDir() {
-			log.Debug(ctx, "A nested dirctory was encountered, skipping uploading the directory", "directory", info.Name())
 			return nil
 		}
 
-		// Determine content type based on file extension
 		contentType := getContentType(filepath.Ext(path))
 		if contentType == "" {
-			log.Debug(ctx, "Skipping uploading unsupported file type", "file", info.Name())
+			log.Debug(ctx, "Skipping unsupported file type", "file", info.Name())
 			return nil
 		}
 
-		// Open the file for reading
-		file, err := os.Open(path)
+		f, err := os.Open(path)
 		if err != nil {
-			log.Error(ctx, "could not open the file in the directory", "file", file.Name(), "error", err)
+			log.Error(ctx, "Could not open file", "file", path, "error", err)
 			return err
 		}
-		defer file.Close()
-		log.Debug(ctx, "opened file for uploading", "file", file.Name())
-		// Upload the file
-		objectName := baseFilename + "/" + info.Name()
-		log.Debug(ctx, "printing upload params", "storage-bucket", cfg.String("minio.storage-bucket"), "object-name", objectName, "file-location", file.Name())
-		_, err = minioClient.FPutObject(ctx, cfg.String("minio.storage-bucket"), objectName, file.Name(), minio.PutObjectOptions{
-			ContentType: contentType,
+		defer f.Close()
+
+		objectKey := fmt.Sprintf("%s/%s", baseFilename, info.Name())
+
+		log.Debug(ctx, "Uploading file", "bucket", storageBucket, "key", objectKey)
+
+		_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+			Bucket:      aws.String(storageBucket),
+			Key:         aws.String(objectKey),
+			Body:        f,
+			ContentType: aws.String(contentType),
 		})
 		if err != nil {
-			log.Error(ctx, "Failed to upload file", "file", file.Name(), "error", err)
+			log.Error(ctx, "Failed to upload file", "file", path, "error", err)
 			return err
 		}
 
-		log.Debug(ctx, "Uploaded file into Minio/s3 storage", "object-name", objectName, "file-location", file.Name(), "content-type", contentType)
+		log.Debug(ctx, "Uploaded file", "key", objectKey)
 		return nil
 	})
 
 	if err != nil {
 		log.Error(ctx, "Error walking the folder", "folder", currentDir, "error", err)
+	} else {
+		log.Info(ctx, "Folder uploaded successfully", "directory", currentDir)
 	}
-	log.Info(ctx, "Folder uploaded successfully", "directory", currentDir)
 }
 
 func getContentType(extension string) string {

@@ -1,26 +1,27 @@
 application:
-  name: hangout-storage-service
+  name: 
   
 kafka:
-  url: localhost:9092
-  topic: content
-  group-id: hangout-storage-service
+  url:
+  topic:
+  group-id:
 
-log:
-  level: debug
-
-minio:
-    base-url: localhost:9000
-    upload-bucket: upload
-    storage-bucket: processed
-    
-process:
-    queue-length: 4
-    pool-strength: 4
+aws:
+  region: 
+s3:
+  upload-bucket: 
+  storage-bucket: 
 
 datasource:
-  username: postgres
-  dbname: posts
+  username:
+  dbname:
+
+log:
+  level:
+
+process:
+    queue-length:
+    pool-strength:
 
 otel:
-  endpoint: localhost:4317
+  endpoint:
