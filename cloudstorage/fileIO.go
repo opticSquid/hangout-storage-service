@@ -35,8 +35,8 @@ func Connect(workerId int, ctx context.Context, cfg *koanf.Koanf, log logger.Log
 
 	s3Client := s3.NewFromConfig(awsCfg)
 
-	uploadBucket := cfg.String("s3.upload-bucket")
-	storageBucket := cfg.String("s3.storage-bucket")
+	uploadBucket := cfg.String("aws.s3.upload-bucket")
+	storageBucket := cfg.String("aws.s3.storage-bucket")
 
 	checkAndCreateBucket(ctx, s3Client, uploadBucket, log, workerId)
 	checkAndCreateBucket(ctx, s3Client, storageBucket, log, workerId)
