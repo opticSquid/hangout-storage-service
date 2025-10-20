@@ -1,4 +1,4 @@
-FROM golang:1.23-bookworm AS builder
+FROM golang:1.25-bookworm AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o storage-s
 FROM ubuntu:noble
 
 # Install necessary packages with optimizations
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg imagemagick gpac && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg gpac && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the application.yaml from resources directory from the build context to final image
 COPY --from=builder /app/resources/application.yaml /resources/application.yaml
