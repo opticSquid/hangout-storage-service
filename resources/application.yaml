@@ -8,9 +8,9 @@ kafka:
 
 aws:
   region: 
-s3:
-  upload-bucket: 
-  storage-bucket: 
+  s3:
+    upload-bucket: 
+    storage-bucket: 
 
 datasource:
   username:

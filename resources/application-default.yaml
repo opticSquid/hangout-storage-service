@@ -8,9 +8,9 @@ kafka:
 
 aws:
   region: ap-south-1
-s3:
-  upload-bucket: hangout-uploaded
-  storage-bucket: hangout-processed
+  s3:
+    upload-bucket: hangout-uploaded
+    storage-bucket: hangout-processed
 
 datasource:
   username: postgres
