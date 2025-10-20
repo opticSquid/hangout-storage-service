@@ -9,7 +9,7 @@ In the final version this service will be able to process any image or video con
 ## Pre-requisites
 
 - kafka Broker url and a topic to connect to
-- FFMPEG & ImageMagick to be installed locally in the machine/node in which this service would run
+- FFMPEG to be installed locally in the machine/node in which this service would run
 
 
 ## Architecture overview
