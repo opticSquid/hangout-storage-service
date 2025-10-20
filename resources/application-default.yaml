@@ -1,7 +1,27 @@
-minio:
-    access-key: ITtpzgn9Q0UjIbi0D71V
-    secret-key: ukUq1HHBUrjBXMEaTt55CilhNvvvEicnjT3SSqwH
+application:
+  name: hangout-storage-service
+
+kafka:
+  url: localhost:9092
+  topic: content
+  group-id: hangout-storage-service
+
+aws:
+  region: ap-south-1
+s3:
+  upload-bucket: hangout-uploaded
+  storage-bucket: hangout-processed
 
 datasource:
   password: PkNLm@#2357
   url: localhost:5432
+
+log:
+  level: debug
+
+process:
+    queue-length: 4
+    pool-strength: 4
+
+otel:
+  endpoint: localhost:4317

@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/knadh/koanf/v2"
 
-	"github.com/minio/minio-go/v7"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"hangout.com/core/storage-service/cloudstorage"
@@ -37,7 +37,7 @@ func CreateWorkerPool(eventChan <-chan *files.File, ctx context.Context, cfg *ko
 func (worker *WorkerPool) worker(workerId int) {
 	defer worker.wg.Done()
 	workerLogger := worker.log.With("worker-id", workerId)
-	minioClient, err := cloudstorage.Connect(workerId, worker.ctx, worker.cfg, workerLogger)
+	s3Client, err := cloudstorage.Connect(workerId, worker.ctx, worker.cfg, workerLogger)
 	if err != nil {
 		return
 	}
@@ -48,7 +48,7 @@ func (worker *WorkerPool) worker(workerId int) {
 				workerLogger.Info(worker.ctx, "Event channel closed, stopping worker")
 				return
 			}
-			worker.do(workerId, file, workerLogger, minioClient)
+			worker.do(workerId, file, workerLogger, s3Client)
 		case <-worker.ctx.Done():
 			workerLogger.Info(worker.ctx, "Context cancelled, stopping worker")
 			return
@@ -56,7 +56,7 @@ func (worker *WorkerPool) worker(workerId int) {
 	}
 }
 
-func (worker *WorkerPool) do(workerId int, file *files.File, workerLogger logger.Log, minioClient *minio.Client) {
+func (worker *WorkerPool) do(workerId int, file *files.File, workerLogger logger.Log, s3Client *s3.Client) {
 	tr := otel.Tracer("hangout.storage.worker")
 	ctx, span := tr.Start(file.Context, "ProcessFile")
 	span.SetAttributes(
@@ -69,14 +69,14 @@ func (worker *WorkerPool) do(workerId int, file *files.File, workerLogger logger
 	workerLogger.Info(ctx, "starting file processing", "file-name", file.Filename, "user-id", file.UserId)
 
 	// download the given file from cloud storage
-	cloudstorage.Download(ctx, minioClient, file, worker.cfg, workerLogger)
+	cloudstorage.Download(ctx, s3Client, file, worker.cfg, workerLogger)
 	// process the file
 	err := file.Process(ctx, worker.cfg, worker.dbConnPool, workerLogger)
 	if err != nil {
 		workerLogger.Error(ctx, "could not process file", "error", err.Error())
 	}
 	// upload the given file to cloud storage
-	cloudstorage.UploadDir(ctx, minioClient, file, worker.cfg, workerLogger)
+	cloudstorage.UploadDir(ctx, s3Client, file, worker.cfg, workerLogger)
 	if file.KafkaSession != nil && file.KafkaMessage != nil {
 		file.KafkaSession.MarkMessage(file.KafkaMessage, "") // Acknowledge the Kafka event and mark as completed
 	}
