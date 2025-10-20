@@ -54,7 +54,14 @@ func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSessio
 			span.SetStatus(codes.Error, err.Error())
 			cgh.log.Error(ctx, "error in unmarshalling", err)
 		} else {
-			event := files.File{Context: ctx, Filename: body.Filename, ContentType: body.ContentType, UserId: body.UserId}
+			event := files.File{
+				Context:      ctx,
+				Filename:     body.Filename,
+				ContentType:  body.ContentType,
+				UserId:       body.UserId,
+				KafkaMessage: message,
+				KafkaSession: session,
+			}
 			cgh.log.Debug(ctx, "File Upload event occured",
 				"Topic", message.Topic,
 				"Partition", message.Partition,
@@ -63,7 +70,6 @@ func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSessio
 			)
 			select {
 			case cgh.Files <- &event:
-				session.MarkMessage(message, "")
 				consumedEventsCounter.Add(ctx, 1) // <-- increment counter
 				span.End()
 			default:

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/knadh/koanf/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -17,10 +18,12 @@ import (
 )
 
 type File struct {
-	Context     context.Context
-	ContentType string
-	Filename    string
-	UserId      int32
+	Context      context.Context
+	ContentType  string
+	Filename     string
+	UserId       int32
+	KafkaMessage *sarama.ConsumerMessage
+	KafkaSession sarama.ConsumerGroupSession
 }
 
 func (f *File) Process(workerContext context.Context, cfg *koanf.Koanf, dbConnPool *database.DatabaseConnectionPool, log logger.Log) error {

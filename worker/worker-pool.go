@@ -77,6 +77,9 @@ func (worker *WorkerPool) do(workerId int, file *files.File, workerLogger logger
 	}
 	// upload the given file to cloud storage
 	cloudstorage.UploadDir(ctx, minioClient, file, worker.cfg, workerLogger)
+	if file.KafkaSession != nil && file.KafkaMessage != nil {
+		file.KafkaSession.MarkMessage(file.KafkaMessage, "") // Acknowledge the Kafka event and mark as completed
+	}
 	workerLogger.Info(ctx, "finished file processing", "file-name", file.Filename)
 }
 
