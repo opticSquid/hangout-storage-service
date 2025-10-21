@@ -70,15 +70,12 @@ func (cgh *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSessio
 			)
 			select {
 			case cgh.Files <- &event:
+				cgh.log.Info(ctx, "Accepting File upload event", "Channel capacity", cap(cgh.Files)-len(cgh.Files))
 				consumedEventsCounter.Add(ctx, 1) // <-- increment counter
 				span.End()
 			default:
 				cgh.log.Warn(ctx, "File channel is full, unable to process event",
-					"FileName", event.Filename,
-					"ContentType", event.ContentType,
-					"Partition", message.Partition,
-					"Offset", message.Offset,
-					"Value", string(message.Value),
+					"Channel capacity", cap(cgh.Files)-len(cgh.Files),
 				)
 				span.End()
 			}
