@@ -10,6 +10,17 @@ import (
 	"hangout.com/core/storage-service/logger"
 )
 
+// IsAlreadyProcessed checks if the file with the given filename has process_status SUCCESS.
+func (dbConn *DatabaseConnectionPool) IsAlreadyProcessed(ctx context.Context, filename string) (bool, error) {
+	var currentStatus model.ProcessStatus
+	row := dbConn.pool.QueryRow(ctx, "SELECT process_status FROM media WHERE filename = $1", filename)
+	err := row.Scan(&currentStatus)
+	if err != nil {
+		return false, err
+	}
+	return currentStatus == model.SUCCESS, nil
+}
+
 func (dbConn *DatabaseConnectionPool) UpdateProcessingStatus(ctx context.Context, filename string, processStatus model.ProcessStatus, log logger.Log) error {
 	tr := otel.Tracer("hangout.storage.database")
 	ctx, span := tr.Start(ctx, "UpdateProcessingStatus")
