@@ -176,10 +176,33 @@ func UploadDir(ctx context.Context, s3Client *s3.Client, event *files.File, cfg 
 	})
 
 	if err != nil {
-		log.Error(ctx, "Error walking the folder", "folder", currentDir, "error", err)
+		log.Error(ctx, "Error walking the directory", "directory", currentDir, "error", err)
 	} else {
 		log.Info(ctx, "Folder uploaded successfully", "directory", currentDir)
+		span.SetStatus(codes.Ok, "Folder uploaded successfully")
+		log.Info(ctx, "Deleting the local directory", "directory", currentDir)
+		deleteUploadedDirFromLocal(ctx, event, log)
 	}
+}
+
+func deleteUploadedDirFromLocal(ctx context.Context, file *files.File, log logger.Log) {
+	tr := otel.Tracer("hangout.storage.cloudstorage")
+	ctx, span := tr.Start(ctx, "DeleteUploadedFiles")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("file.name", file.Filename),
+		attribute.Int("file.userId", int(file.UserId)),
+	)
+
+	baseFilename := strings.Split(file.Filename, ".")[0]
+	dirPath := "/tmp/" + baseFilename
+	err := os.RemoveAll(dirPath)
+	if err != nil {
+		log.Error(ctx, "Could not delete local directory", "directory", dirPath, "error", err)
+		span.RecordError(err)
+	}
+	log.Info(ctx, "Local directory deleted successfully", "file", file.Filename, "directory", dirPath)
 }
 
 func getContentType(extension string) string {
