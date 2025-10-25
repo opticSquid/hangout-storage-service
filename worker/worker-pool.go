@@ -68,29 +68,35 @@ func (worker *WorkerPool) do(workerId int, file *files.File, workerLogger logger
 
 	workerLogger.Info(ctx, "starting file processing", "file-name", file.Filename, "user-id", file.UserId)
 
-	// download the given file from cloud storage
-	cloudstorage.Download(ctx, s3Client, file, worker.cfg, workerLogger)
-	// process the file
-	err := file.Process(ctx, worker.cfg, worker.dbConnPool, workerLogger)
+	// Check if already processed
+	isProcessed, err := worker.dbConnPool.IsAlreadyProcessed(ctx, file.Filename)
 	if err != nil {
-		if err.Error() == "cannot update process_status: already SUCCESS" {
-			// Acknowledge and skip upload
-			if file.KafkaSession != nil && file.KafkaMessage != nil {
-				file.KafkaSession.MarkMessage(file.KafkaMessage, "")
-			}
-			workerLogger.Info(ctx, "file already processed, skipping upload", "file-name", file.Filename)
-		} else {
-			workerLogger.Error(ctx, "could not process file", "error", err.Error())
-			// do not acknowledge, so it can be retried
-		}
-	} else {
-		// Success: upload and acknowledge
-		cloudstorage.UploadDir(ctx, s3Client, file, worker.cfg, workerLogger)
+		workerLogger.Error(ctx, "error checking process status", "error", err.Error())
+		// Optionally: do not acknowledge, so it can be retried
+		return
+	}
+	if isProcessed {
+		workerLogger.Info(ctx, "file already processed, acknowledging and skipping", "file-name", file.Filename)
 		if file.KafkaSession != nil && file.KafkaMessage != nil {
 			file.KafkaSession.MarkMessage(file.KafkaMessage, "")
 		}
-		workerLogger.Info(ctx, "finished file processing", "file-name", file.Filename)
+		return
 	}
+
+	// Not processed: download, process, upload, then acknowledge
+	cloudstorage.Download(ctx, s3Client, file, worker.cfg, workerLogger)
+	err = file.Process(ctx, worker.cfg, worker.dbConnPool, workerLogger)
+	if err != nil {
+		workerLogger.Error(ctx, "could not process file", "error", err.Error())
+		// Optionally: do not acknowledge, so it can be retried
+		return
+	}
+
+	cloudstorage.UploadDir(ctx, s3Client, file, worker.cfg, workerLogger)
+	if file.KafkaSession != nil && file.KafkaMessage != nil {
+		file.KafkaSession.MarkMessage(file.KafkaMessage, "")
+	}
+	workerLogger.Info(ctx, "finished file processing", "file-name", file.Filename)
 }
 
 // Wait ensures all workers complete processing before the program exits
