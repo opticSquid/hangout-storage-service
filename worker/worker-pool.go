@@ -73,14 +73,24 @@ func (worker *WorkerPool) do(workerId int, file *files.File, workerLogger logger
 	// process the file
 	err := file.Process(ctx, worker.cfg, worker.dbConnPool, workerLogger)
 	if err != nil {
-		workerLogger.Error(ctx, "could not process file", "error", err.Error())
+		if err.Error() == "cannot update process_status: already SUCCESS" {
+			// Acknowledge and skip upload
+			if file.KafkaSession != nil && file.KafkaMessage != nil {
+				file.KafkaSession.MarkMessage(file.KafkaMessage, "")
+			}
+			workerLogger.Info(ctx, "file already processed, skipping upload", "file-name", file.Filename)
+		} else {
+			workerLogger.Error(ctx, "could not process file", "error", err.Error())
+			// do not acknowledge, so it can be retried
+		}
+	} else {
+		// Success: upload and acknowledge
+		cloudstorage.UploadDir(ctx, s3Client, file, worker.cfg, workerLogger)
+		if file.KafkaSession != nil && file.KafkaMessage != nil {
+			file.KafkaSession.MarkMessage(file.KafkaMessage, "")
+		}
+		workerLogger.Info(ctx, "finished file processing", "file-name", file.Filename)
 	}
-	// upload the given file to cloud storage
-	cloudstorage.UploadDir(ctx, s3Client, file, worker.cfg, workerLogger)
-	if file.KafkaSession != nil && file.KafkaMessage != nil {
-		file.KafkaSession.MarkMessage(file.KafkaMessage, "") // Acknowledge the Kafka event and mark as completed
-	}
-	workerLogger.Info(ctx, "finished file processing", "file-name", file.Filename)
 }
 
 // Wait ensures all workers complete processing before the program exits

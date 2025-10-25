@@ -51,8 +51,14 @@ func (f *File) Process(workerContext context.Context, cfg *koanf.Koanf, dbConnPo
 	} else {
 		mediaFile := &pipeline.Video{Filename: f.Filename}
 		log.Info(ctx, "marking file status as PROCESSING in db", "filename", f.Filename)
-		dbConnPool.UpdateProcessingStatus(ctx, f.Filename, model.PROCESSING, log)
-		err := mediaFile.ProcessMedia(ctx, cfg, log)
+		err := dbConnPool.UpdateProcessingStatus(ctx, f.Filename, model.PROCESSING, log)
+		if err != nil {
+			log.Error(ctx, "could not mark file as PROCESSING in db", "filename", f.Filename)
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return err
+		}
+		err = mediaFile.ProcessMedia(ctx, cfg, log)
 		if err != nil {
 			log.Error(ctx, "marking file status as FAILED in db", "filename", f.Filename)
 			dbConnPool.UpdateProcessingStatus(ctx, f.Filename, model.FAIL, log)
